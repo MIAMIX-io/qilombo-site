@@ -1,76 +1,35 @@
-name: Notion Sync & Deploy
+name: Sync Notion to GitHub
 
 on:
-  workflow_dispatch:      # Manual trigger button
   schedule:
-    - cron: "0 */6 * * *" # Runs every 6 hours
-  push:
-    branches:
-      - main              # Runs when you push code to main
-permissions:
-  contents: write
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:  # Manual trigger
+
 jobs:
-  notion-sync:
+  sync:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout repo
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # 2. Setup Node.js
+      - uses: actions/checkout@v4
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      # 3. Install dependencies
+          node-version: '20'
+      
       - name: Install dependencies
-        run: npm install
-
-      # 4. Run the CORRECT Notion sync script (Updated path)
-      - name: Sync content from Notion
+        run: npm install @notionhq/client
+      
+      - name: Sync Notion pages
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-        run: |
-          node js/sync-notion.js
-
-      # 5. Commit changes (only if content changed)
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }} 
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }} 
+        run: node js/sync-notion.js
+      
       - name: Commit changes
         run: |
-          git config --global user.name "notion-bot"
-          git config --global user.email "notion-bot@users.noreply.github.com"
+          git config user.name "Notion Sync Bot"
+          git config user.email "bot@qilombo.tech"
           git add .
-          git diff --cached --quiet || git commit -m "Sync content from Notion"
-
-      # 6. Push back to repo
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.8.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-  deploy:
-    needs: notion-sync
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Ruby (Jekyll)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.2
-          bundler-cache: true
-
-      - name: Build site
-        run: bundle exec jekyll build
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_site
+          git diff --quiet && git diff --staged --quiet || \
+            git commit -m "Sync from Notion $(date +'%Y-%m-%d %H:%M')"
+          git push
