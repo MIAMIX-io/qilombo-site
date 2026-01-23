@@ -1,12 +1,12 @@
-const { Client } = require('@notionhq/client');
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
+import { Client } from '@notionhq/client';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
-// 1. CONFIGURATION: Updated for Qilombo Tech
+// 1. CONFIGURATION
 const TARGET_WEBSITE = 'qilombo.tech'; 
 
 async function syncPages() {
@@ -18,16 +18,19 @@ async function syncPages() {
       and: [
         { property: 'Sync to GitHub', checkbox: { equals: true } },
         { property: 'Status', status: { equals: 'Published' } },
-        // 2. FILTER: Only fetch pages tagged for THIS website
         { property: 'Website', select: { equals: TARGET_WEBSITE } }
       ]
     }
   });
 
+  if (response.results.length === 0) {
+      console.log("No pages found. Check your Notion properties.");
+  }
+
   for (const page of response.results) {
     const props = page.properties;
-    const title = props['Page Title'].title[0]?.plain_text || 'untitled';
-    const slug = props['URL Slug'].rich_text[0]?.plain_text || slugify(title);
+    const title = props['Page Title']?.title[0]?.plain_text || 'untitled';
+    const slug = props['URL Slug']?.rich_text[0]?.plain_text || slugify(title);
     
     // Create folder for post images
     const imageDir = path.join('images', 'posts', slug);
@@ -57,10 +60,12 @@ async function syncPages() {
     const markdown = await convertBlocksToMarkdown(blocks.results, slug, imageDir);
     const frontmatter = generateFrontmatter(props, coverImage);
     
-    // 3. CORRECTION: Write to '_content' to match _config.yml collection definition
+    // Write to '_content'
     const filepath = path.join('_content', `${slug}.md`);
     
-    fs.mkdirSync(path.dirname(filepath), { recursive: true });
+    if (!fs.existsSync(path.dirname(filepath))) {
+        fs.mkdirSync(path.dirname(filepath), { recursive: true });
+    }
     fs.writeFileSync(filepath, `${frontmatter}\n\n${markdown}`);
     
     console.log(`✓ Synced "${title}"`);
@@ -94,12 +99,12 @@ function getExtension(url) {
 function generateFrontmatter(props, coverImage) {
   const meta = {
     layout: 'post',
-    title: props['Page Title'].title[0]?.plain_text,
-    description: props['Meta Description'].rich_text[0]?.plain_text,
-    date: props['Publish Date'].date?.start,
-    tags: props['Tags'].multi_select.map(t => t.name),
+    title: props['Page Title']?.title[0]?.plain_text,
+    description: props['Meta Description']?.rich_text[0]?.plain_text,
+    date: props['Publish Date']?.date?.start,
+    tags: props['Tags']?.multi_select.map(t => t.name),
     image: coverImage,
-    author: props['Author'].rich_text[0]?.plain_text,
+    author: props['Author']?.rich_text[0]?.plain_text, // Updated to Text
     excerpt: props['Excerpt']?.rich_text[0]?.plain_text
   };
   
