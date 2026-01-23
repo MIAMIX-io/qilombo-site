@@ -6,6 +6,7 @@ import https from 'https';
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
+// 1. CONFIGURATION
 const TARGET_WEBSITE = 'qilombo.tech'; 
 
 async function syncPages() {
@@ -98,6 +99,7 @@ function getExtension(url) {
 }
 
 function generateFrontmatter(props, coverImage) {
+  // Extract values safely
   const title = props['Page Title']?.title[0]?.plain_text || 'Untitled';
   const desc = props['Meta Description']?.rich_text[0]?.plain_text || '';
   const date = props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0];
@@ -117,7 +119,7 @@ function generateFrontmatter(props, coverImage) {
   };
   
   return '---\n' + Object.entries(meta)
-    .filter(([k, v]) => v)
+    .filter(([k, v]) => v) // Only include fields that have values
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
     .join('\n') + '\n---';
 }
