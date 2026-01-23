@@ -32,79 +32,82 @@ function slugify(text) {
     .replace(/(^-|-$)+/g, "");
 }
 
-function frontMatter(data) {
+function buildFrontMatter({ title, slug, category, published, date }) {
   return `---
-title: "${data.title}"
-slug: "${data.slug}"
-category: "${data.category}"
-published: ${data.published}
-date: ${data.date}
----\n\n`;
+title: "${title}"
+slug: "${slug}"
+category: "${category}"
+published: ${published}
+date: ${date}
+---
+
+`;
 }
 
 // ----------------------------
 // MAIN
 // ----------------------------
-async function sync() {
+async function syncNotion() {
   console.log("🔄 Syncing content from Notion…");
 
   if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR);
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  const pages = await notion.databases.query({
+  const response = await notion.databases.query({
     database_id: DATABASE_ID,
     filter: {
       property: "Published",
-      checkbox: {
-        equals: true,
-      },
-    },
+      checkbox: { equals: true }
+    }
   });
 
-  console.log(`📄 Found ${pages.results.length} published pages`);
+  console.log(`📄 Found ${response.results.length} published pages`);
 
-  for (const page of pages.results) {
+  for (const page of response.results) {
     const props = page.properties;
 
     const title =
-      props.Name?.title?.[0]?.plain_text || "Untitled";
+      props.Name?.title?.[0]?.plain_text ?? "Untitled";
 
     const slug =
-      props.Slug?.rich_text?.[0]?.plain_text ||
+      props.Slug?.rich_text?.[0]?.plain_text ??
       slugify(title);
 
     const category =
-      props.Category?.select?.name || "general";
+      props.Category?.select?.name ?? "general";
 
     const published =
       props.Published?.checkbox ?? false;
 
-    const date = page.created_time.split("T")[0];
+    const date =
+      page.created_time.split("T")[0];
 
     console.log(`➡ Writing: ${title}`);
 
-    // Convert content to Markdown
     const mdBlocks = await n2m.pageToMarkdown(page.id);
-    const mdContent = n2m.toMarkdownString(mdBlocks);
+    const md = n2m.toMarkdownString(mdBlocks);
 
-    const output = frontMatter({
-      title,
-      slug,
-      category,
-      published,
-      date,
-    }) + mdContent;
+    const output =
+      buildFrontMatter({
+        title,
+        slug,
+        category,
+        published,
+        date
+      }) + md;
 
-    const filePath = path.join(
-      OUTPUT_DIR,
-      `${slug}.md`
-    );
-
+    const filePath = path.join(OUTPUT_DIR, `${slug}.md`);
     fs.writeFileSync(filePath, output);
   }
 
   console.log("✅ Notion sync completed successfully");
 }
 
-sync().catch(
+// ----------------------------
+// RUN
+// ----------------------------
+syncNotion().catch((error) => {
+  console.error("❌ Sync failed:", error);
+  process.exit(1);
+});
