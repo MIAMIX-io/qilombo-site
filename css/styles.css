@@ -56,6 +56,8 @@ body {
   padding: 0.5rem 1rem;
   border: 1px solid var(--cyan);
   border-radius: 999px;
+  text-decoration: none; /* Added for consistency */
+  color: var(--text);    /* Added for consistency */
 }
 
 /* HERO */
@@ -106,6 +108,7 @@ body {
 
 /* BUTTONS */
 .btn-primary {
+  display: inline-block; /* FIXED: Ensures button respects spacing/margins */
   padding: 0.75rem 1.5rem;
   border-radius: 999px;
   background: var(--gradient);
@@ -115,6 +118,7 @@ body {
 }
 
 .btn-secondary {
+  display: inline-block; /* FIXED: Ensures button respects spacing/margins */
   padding: 0.75rem 1.5rem;
   border-radius: 999px;
   border: 1px solid var(--muted);
@@ -192,6 +196,15 @@ body {
 
 .cta h2 {
   margin-bottom: 1rem;
+}
+
+/* FIXED: Added spacing specifically for the CTA paragraph */
+.cta p {
+  margin-bottom: 2.5rem; /* Pushes the button down */
+  color: var(--muted);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* FOOTER */
