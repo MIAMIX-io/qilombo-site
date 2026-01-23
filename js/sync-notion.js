@@ -1,12 +1,12 @@
-const { Client } = require('@notionhq/client');
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
+import { Client } from '@notionhq/client';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
-// 1. CONFIGURATION: Updated for Qilombo Tech
+// 1. CONFIGURATION
 const TARGET_WEBSITE = 'qilombo.tech'; 
 
 async function syncPages() {
@@ -18,16 +18,21 @@ async function syncPages() {
       and: [
         { property: 'Sync to GitHub', checkbox: { equals: true } },
         { property: 'Status', status: { equals: 'Published' } },
-        // 2. FILTER: Only fetch pages tagged for THIS website
         { property: 'Website', select: { equals: TARGET_WEBSITE } }
       ]
     }
   });
 
+  if (response.results.length === 0) {
+      console.log("⚠️ No pages found. Check that 'Sync to GitHub' is checked and Status is 'Published'.");
+  }
+
   for (const page of response.results) {
     const props = page.properties;
-    const title = props['Page Title'].title[0]?.plain_text || 'untitled';
-    const slug = props['URL Slug'].rich_text[0]?.plain_text || slugify(title);
+    
+    // SAFEGUARDS: Check if properties exist before accessing them
+    const title = props['Page Title']?.title[0]?.plain_text || 'untitled';
+    const slug = props['URL Slug']?.rich_text[0]?.plain_text || slugify(title);
     
     // Create folder for post images
     const imageDir = path.join('images', 'posts', slug);
@@ -57,10 +62,12 @@ async function syncPages() {
     const markdown = await convertBlocksToMarkdown(blocks.results, slug, imageDir);
     const frontmatter = generateFrontmatter(props, coverImage);
     
-    // 3. CORRECTION: Write to '_content' to match _config.yml collection definition
+    // Write to '_content' folder
     const filepath = path.join('_content', `${slug}.md`);
     
-    fs.mkdirSync(path.dirname(filepath), { recursive: true });
+    if (!fs.existsSync(path.dirname(filepath))) {
+        fs.mkdirSync(path.dirname(filepath), { recursive: true });
+    }
     fs.writeFileSync(filepath, `${frontmatter}\n\n${markdown}`);
     
     console.log(`✓ Synced "${title}"`);
@@ -92,19 +99,27 @@ function getExtension(url) {
 }
 
 function generateFrontmatter(props, coverImage) {
+  // Extract values safely
+  const title = props['Page Title']?.title[0]?.plain_text || 'Untitled';
+  const desc = props['Meta Description']?.rich_text[0]?.plain_text || '';
+  const date = props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0];
+  const tags = props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [];
+  const author = props['Author']?.rich_text[0]?.plain_text || 'Qilombo';
+  const excerpt = props['Excerpt']?.rich_text[0]?.plain_text || '';
+
   const meta = {
     layout: 'post',
-    title: props['Page Title'].title[0]?.plain_text,
-    description: props['Meta Description'].rich_text[0]?.plain_text,
-    date: props['Publish Date'].date?.start,
-    tags: props['Tags'].multi_select.map(t => t.name),
+    title: title,
+    description: desc,
+    date: date,
+    tags: tags,
     image: coverImage,
-    author: props['Author'].rich_text[0]?.plain_text,
-    excerpt: props['Excerpt']?.rich_text[0]?.plain_text
+    author: author,
+    excerpt: excerpt
   };
   
   return '---\n' + Object.entries(meta)
-    .filter(([k, v]) => v)
+    .filter(([k, v]) => v) // Only include fields that have values
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
     .join('\n') + '\n---';
 }
