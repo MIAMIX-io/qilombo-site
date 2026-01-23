@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const headerOffset = 80; // height of sticky header
+    const headerOffset = 80; // Matches your sticky header height (approx 74px) + breathing room
 
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', e => {
