@@ -6,8 +6,8 @@ const https = require('https');
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
-// 1. CONFIGURATION: Change this one line for future forks/repositories
-const TARGET_WEBSITE = 'globalmix.online'; // Matches your Notion 'Website' Select property
+// 1. CONFIGURATION: Updated for Qilombo Tech
+const TARGET_WEBSITE = 'qilombo.tech'; 
 
 async function syncPages() {
   console.log(`🔄 Starting Sync for: ${TARGET_WEBSITE}...`);
@@ -29,10 +29,6 @@ async function syncPages() {
     const title = props['Page Title'].title[0]?.plain_text || 'untitled';
     const slug = props['URL Slug'].rich_text[0]?.plain_text || slugify(title);
     
-    // We create the folder based on the website tag (e.g., content/globalmix.online/)
-    // This keeps things organized even if you merge content later.
-    const website = TARGET_WEBSITE; 
-
     // Create folder for post images
     const imageDir = path.join('images', 'posts', slug);
     if (!fs.existsSync(imageDir)) {
@@ -61,9 +57,8 @@ async function syncPages() {
     const markdown = await convertBlocksToMarkdown(blocks.results, slug, imageDir);
     const frontmatter = generateFrontmatter(props, coverImage);
     
-    // Write file to content/globalmix.online/slug.md
-    // We use the TARGET_WEBSITE variable to set the folder
-    const filepath = path.join('content', 'posts', `${slug}.md`);
+    // 3. CORRECTION: Write to '_content' to match _config.yml collection definition
+    const filepath = path.join('_content', `${slug}.md`);
     
     fs.mkdirSync(path.dirname(filepath), { recursive: true });
     fs.writeFileSync(filepath, `${frontmatter}\n\n${markdown}`);
@@ -105,7 +100,7 @@ function generateFrontmatter(props, coverImage) {
     tags: props['Tags'].multi_select.map(t => t.name),
     image: coverImage,
     author: props['Author'].rich_text[0]?.plain_text,
-    excerpt: props['Excerpt']?.rich_text[0]?.plain_text // Added Excerpt
+    excerpt: props['Excerpt']?.rich_text[0]?.plain_text
   };
   
   return '---\n' + Object.entries(meta)
