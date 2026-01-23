@@ -24,11 +24,13 @@ async function syncPages() {
   });
 
   if (response.results.length === 0) {
-      console.log("No pages found. Check your Notion properties.");
+      console.log("⚠️ No pages found. Check that 'Sync to GitHub' is checked and Status is 'Published'.");
   }
 
   for (const page of response.results) {
     const props = page.properties;
+    
+    // SAFEGUARDS: Check if properties exist before accessing them
     const title = props['Page Title']?.title[0]?.plain_text || 'untitled';
     const slug = props['URL Slug']?.rich_text[0]?.plain_text || slugify(title);
     
@@ -60,7 +62,7 @@ async function syncPages() {
     const markdown = await convertBlocksToMarkdown(blocks.results, slug, imageDir);
     const frontmatter = generateFrontmatter(props, coverImage);
     
-    // Write to '_content'
+    // Write to '_content' folder
     const filepath = path.join('_content', `${slug}.md`);
     
     if (!fs.existsSync(path.dirname(filepath))) {
@@ -97,19 +99,27 @@ function getExtension(url) {
 }
 
 function generateFrontmatter(props, coverImage) {
+  // Extract values safely
+  const title = props['Page Title']?.title[0]?.plain_text || 'Untitled';
+  const desc = props['Meta Description']?.rich_text[0]?.plain_text || '';
+  const date = props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0];
+  const tags = props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [];
+  const author = props['Author']?.rich_text[0]?.plain_text || 'Qilombo';
+  const excerpt = props['Excerpt']?.rich_text[0]?.plain_text || '';
+
   const meta = {
     layout: 'post',
-    title: props['Page Title']?.title[0]?.plain_text,
-    description: props['Meta Description']?.rich_text[0]?.plain_text,
-    date: props['Publish Date']?.date?.start,
-    tags: props['Tags']?.multi_select.map(t => t.name),
+    title: title,
+    description: desc,
+    date: date,
+    tags: tags,
     image: coverImage,
-    author: props['Author']?.rich_text[0]?.plain_text, // Updated to Text
-    excerpt: props['Excerpt']?.rich_text[0]?.plain_text
+    author: author,
+    excerpt: excerpt
   };
   
   return '---\n' + Object.entries(meta)
-    .filter(([k, v]) => v)
+    .filter(([k, v]) => v) // Only include fields that have values
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
     .join('\n') + '\n---';
 }
