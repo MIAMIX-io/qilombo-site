@@ -17,23 +17,24 @@ async function syncPages() {
     filter: {
       and: [
         { property: 'Sync to GitHub', checkbox: { equals: true } },
-        { property: 'Status', status: { equals: 'Published' } },
+        { property: 'Status', status: { equals: 'Published' } }, // Only looks for 'Published'
         { property: 'Website', select: { equals: TARGET_WEBSITE } }
       ]
     }
   });
 
   if (response.results.length === 0) {
-      console.log("⚠️ No pages found. Check that 'Sync to GitHub' is checked and Status is 'Published'.");
+      console.log("ℹ️ No new 'Published' pages found. (Check if pages are already 'Live')");
   }
 
   for (const page of response.results) {
     const props = page.properties;
     
-    // SAFEGUARDS: Check if properties exist before accessing them
     const title = props['Page Title']?.title[0]?.plain_text || 'untitled';
     const slug = props['URL Slug']?.rich_text[0]?.plain_text || slugify(title);
     
+    console.log(`Processing: ${title}...`);
+
     // Create folder for post images
     const imageDir = path.join('images', 'posts', slug);
     if (!fs.existsSync(imageDir)) {
@@ -70,7 +71,23 @@ async function syncPages() {
     }
     fs.writeFileSync(filepath, `${frontmatter}\n\n${markdown}`);
     
-    console.log(`✓ Synced "${title}"`);
+    console.log(`✓ Synced file: "${slug}.md"`);
+
+    // --- NEW STEP: UPDATE NOTION STATUS ---
+    // This changes the status from "Published" to "Live"
+    try {
+        await notion.pages.update({
+            page_id: page.id,
+            properties: {
+                'Status': {
+                    status: { name: 'Live' } 
+                }
+            }
+        });
+        console.log(`✨ Updated Notion Status to "Live"`);
+    } catch (error) {
+        console.error(`⚠️ Failed to update Notion status: ${error.message}`);
+    }
   }
 }
 
@@ -99,7 +116,6 @@ function getExtension(url) {
 }
 
 function generateFrontmatter(props, coverImage) {
-  // Extract values safely
   const title = props['Page Title']?.title[0]?.plain_text || 'Untitled';
   const desc = props['Meta Description']?.rich_text[0]?.plain_text || '';
   const date = props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0];
@@ -119,7 +135,7 @@ function generateFrontmatter(props, coverImage) {
   };
   
   return '---\n' + Object.entries(meta)
-    .filter(([k, v]) => v) // Only include fields that have values
+    .filter(([k, v]) => v) 
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
     .join('\n') + '\n---';
 }
