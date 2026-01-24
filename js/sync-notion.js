@@ -8,28 +8,33 @@ const databaseId = process.env.NOTION_DATABASE_ID;
 
 // 1. CONFIGURATION
 const TARGET_WEBSITE = 'qilombo.tech'; 
+const OUTPUT_DIR = '_content';
 
 async function syncPages() {
   console.log(`🔄 Starting Sync for: ${TARGET_WEBSITE}...`);
+
+  // FIX: Create output directory immediately so the workflow never fails
+  if (!fs.existsSync(OUTPUT_DIR)) {
+      fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  }
   
   const response = await notion.databases.query({
     database_id: databaseId,
     filter: {
       and: [
         { property: 'Sync to GitHub', checkbox: { equals: true } },
-        { property: 'Status', status: { equals: 'Published' } }, // Only looks for 'Published'
+        { property: 'Status', status: { equals: 'Published' } },
         { property: 'Website', select: { equals: TARGET_WEBSITE } }
       ]
     }
   });
 
   if (response.results.length === 0) {
-      console.log("ℹ️ No new 'Published' pages found. (Check if pages are already 'Live')");
+      console.log("ℹ️ No 'Published' pages found. (If you need to update a page, switch it back to 'Published' in Notion).");
   }
 
   for (const page of response.results) {
     const props = page.properties;
-    
     const title = props['Page Title']?.title[0]?.plain_text || 'untitled';
     const slug = props['URL Slug']?.rich_text[0]?.plain_text || slugify(title);
     
@@ -64,24 +69,17 @@ async function syncPages() {
     const frontmatter = generateFrontmatter(props, coverImage);
     
     // Write to '_content' folder
-    const filepath = path.join('_content', `${slug}.md`);
-    
-    if (!fs.existsSync(path.dirname(filepath))) {
-        fs.mkdirSync(path.dirname(filepath), { recursive: true });
-    }
+    const filepath = path.join(OUTPUT_DIR, `${slug}.md`);
     fs.writeFileSync(filepath, `${frontmatter}\n\n${markdown}`);
     
     console.log(`✓ Synced file: "${slug}.md"`);
 
-    // --- NEW STEP: UPDATE NOTION STATUS ---
-    // This changes the status from "Published" to "Live"
+    // --- UPDATE NOTION STATUS TO 'Live' ---
     try {
         await notion.pages.update({
             page_id: page.id,
             properties: {
-                'Status': {
-                    status: { name: 'Live' } 
-                }
+                'Status': { status: { name: 'Live' } } 
             }
         });
         console.log(`✨ Updated Notion Status to "Live"`);
@@ -98,14 +96,8 @@ function downloadImage(url, filepath) {
         const file = fs.createWriteStream(filepath);
         https.get(url, (response) => {
             response.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                resolve();
-            });
-        }).on('error', (err) => {
-            fs.unlink(filepath, () => {}); 
-            reject(err.message);
-        });
+            file.on('finish', () => { file.close(); resolve(); });
+        }).on('error', (err) => { fs.unlink(filepath, () => {}); reject(err.message); });
     });
 }
 
@@ -116,83 +108,44 @@ function getExtension(url) {
 }
 
 function generateFrontmatter(props, coverImage) {
-  const title = props['Page Title']?.title[0]?.plain_text || 'Untitled';
-  const desc = props['Meta Description']?.rich_text[0]?.plain_text || '';
-  const date = props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0];
-  const tags = props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [];
-  const author = props['Author']?.rich_text[0]?.plain_text || 'Qilombo';
-  const excerpt = props['Excerpt']?.rich_text[0]?.plain_text || '';
-
   const meta = {
     layout: 'post',
-    title: title,
-    description: desc,
-    date: date,
-    tags: tags,
+    title: props['Page Title']?.title[0]?.plain_text,
+    description: props['Meta Description']?.rich_text[0]?.plain_text,
+    date: props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0],
+    tags: props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [],
     image: coverImage,
-    author: author,
-    excerpt: excerpt
+    author: props['Author']?.rich_text[0]?.plain_text,
+    excerpt: props['Excerpt']?.rich_text[0]?.plain_text
   };
   
   return '---\n' + Object.entries(meta)
-    .filter(([k, v]) => v) 
+    .filter(([k, v]) => v)
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
     .join('\n') + '\n---';
 }
 
 function slugify(text) {
-  return text.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 async function convertBlocksToMarkdown(blocks, slug, imageDir) {
   const output = [];
-  
   for (const block of blocks) {
     switch(block.type) {
-      case 'paragraph':
-        output.push(block.paragraph.rich_text.map(t => t.plain_text).join(''));
-        break;
-      case 'heading_1':
-        output.push('# ' + block.heading_1.rich_text.map(t => t.plain_text).join(''));
-        break;
-      case 'heading_2':
-        output.push('## ' + block.heading_2.rich_text.map(t => t.plain_text).join(''));
-        break;
-      case 'heading_3':
-        output.push('### ' + block.heading_3.rich_text.map(t => t.plain_text).join(''));
-        break;
-      case 'bulleted_list_item':
-        output.push('- ' + block.bulleted_list_item.rich_text.map(t => t.plain_text).join(''));
-        break;
-      case 'numbered_list_item':
-        output.push('1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join(''));
-        break;
+      case 'paragraph': output.push(block.paragraph.rich_text.map(t => t.plain_text).join('')); break;
+      case 'heading_1': output.push('# ' + block.heading_1.rich_text.map(t => t.plain_text).join('')); break;
+      case 'heading_2': output.push('## ' + block.heading_2.rich_text.map(t => t.plain_text).join('')); break;
+      case 'heading_3': output.push('### ' + block.heading_3.rich_text.map(t => t.plain_text).join('')); break;
+      case 'bulleted_list_item': output.push('- ' + block.bulleted_list_item.rich_text.map(t => t.plain_text).join('')); break;
+      case 'numbered_list_item': output.push('1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join('')); break;
       case 'image':
-        const imgObj = block.image;
-        const imgUrl = imgObj.file?.url || imgObj.external?.url;
-        const caption = imgObj.caption.length ? imgObj.caption[0].plain_text : "Image";
+        const imgUrl = block.image.file?.url || block.image.external?.url;
+        const caption = block.image.caption[0]?.plain_text || "Image";
         if (imgUrl) {
-            const ext = getExtension(imgUrl);
-            const filename = `${block.id}${ext}`;
-            const savePath = path.join(imageDir, filename);
-            const publicPath = `/images/posts/${slug}/${filename}`;
-            try {
-                await downloadImage(imgUrl, savePath);
-                output.push(`![${caption}](${publicPath})`);
-            } catch (e) {
-                console.error(`Failed to download image: ${e}`);
-            }
-        }
-        break;
-      case 'video':
-        const vidUrl = block.video?.external?.url || block.video?.file?.url;
-        if (vidUrl && vidUrl.includes('youtube.com')) {
-             const videoId = vidUrl.split('v=')[1]?.split('&')[0];
-             if (videoId) {
-                 output.push(`<iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`);
-             }
+            const filename = `${block.id}${getExtension(imgUrl)}`;
+            await downloadImage(imgUrl, path.join(imageDir, filename));
+            output.push(`![${caption}](/images/posts/${slug}/${filename})`);
         }
         break;
     }
