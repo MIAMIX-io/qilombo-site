@@ -46,9 +46,11 @@ jobs:
         run: |
           git config --global user.name "notion-bot"
           git config --global user.email "notion-bot@users.noreply.github.com"
+          # FORCE ADD the _content folder in case it was ignored
+          git add -f _content
           git add .
           git diff --cached --quiet || git commit -m "Sync content from Notion"
-
+          
       # 6. Push back to repo
       - name: Push changes
         uses: ad-m/github-push-action@v0.8.0
