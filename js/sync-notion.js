@@ -13,7 +13,7 @@ const OUTPUT_DIR = '_content';
 async function syncPages() {
   console.log(`🔄 Starting Sync for: ${TARGET_WEBSITE}...`);
 
-  // FIX: Create output directory immediately so the workflow never fails
+  // Ensure output directory exists to prevent errors
   if (!fs.existsSync(OUTPUT_DIR)) {
       fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
@@ -30,7 +30,7 @@ async function syncPages() {
   });
 
   if (response.results.length === 0) {
-      console.log("ℹ️ No 'Published' pages found. (If you need to update a page, switch it back to 'Published' in Notion).");
+      console.log("ℹ️ No 'Published' pages found. (Check if pages are already 'Live' or filters match).");
   }
 
   for (const page of response.results) {
@@ -54,8 +54,12 @@ async function syncPages() {
         if (imageUrl) {
             const ext = getExtension(imageUrl);
             const filename = `cover${ext}`;
-            await downloadImage(imageUrl, path.join(imageDir, filename));
-            coverImage = `/images/posts/${slug}/${filename}`;
+            try {
+                await downloadImage(imageUrl, path.join(imageDir, filename));
+                coverImage = `/images/posts/${slug}/${filename}`;
+            } catch (err) {
+                console.error(`⚠️ Failed to download cover image: ${err.message}`);
+            }
         }
     }
 
@@ -95,6 +99,10 @@ function downloadImage(url, filepath) {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(filepath);
         https.get(url, (response) => {
+            if (response.statusCode !== 200) {
+                reject(new Error(`Status code ${response.statusCode}`));
+                return;
+            }
             response.pipe(file);
             file.on('finish', () => { file.close(); resolve(); });
         }).on('error', (err) => { fs.unlink(filepath, () => {}); reject(err.message); });
@@ -108,6 +116,16 @@ function getExtension(url) {
 }
 
 function generateFrontmatter(props, coverImage) {
+  // CRITICAL FIX: Handle both "Person" and "Text" types for Author
+  let authorName = 'Qilombo';
+  if (props['Author']) {
+      if (props['Author'].type === 'people' && props['Author'].people.length > 0) {
+          authorName = props['Author'].people[0].name;
+      } else if (props['Author'].type === 'rich_text' && props['Author'].rich_text.length > 0) {
+          authorName = props['Author'].rich_text[0].plain_text;
+      }
+  }
+
   const meta = {
     layout: 'post',
     title: props['Page Title']?.title[0]?.plain_text,
@@ -115,7 +133,7 @@ function generateFrontmatter(props, coverImage) {
     date: props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0],
     tags: props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [],
     image: coverImage,
-    author: props['Author']?.rich_text[0]?.plain_text,
+    author: authorName,
     excerpt: props['Excerpt']?.rich_text[0]?.plain_text
   };
   
@@ -141,11 +159,13 @@ async function convertBlocksToMarkdown(blocks, slug, imageDir) {
       case 'numbered_list_item': output.push('1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join('')); break;
       case 'image':
         const imgUrl = block.image.file?.url || block.image.external?.url;
-        const caption = block.image.caption[0]?.plain_text || "Image";
+        const caption = block.image.caption?.length ? block.image.caption[0].plain_text : "Image";
         if (imgUrl) {
             const filename = `${block.id}${getExtension(imgUrl)}`;
-            await downloadImage(imgUrl, path.join(imageDir, filename));
-            output.push(`![${caption}](/images/posts/${slug}/${filename})`);
+            try {
+                await downloadImage(imgUrl, path.join(imageDir, filename));
+                output.push(`![${caption}](/images/posts/${slug}/${filename})`);
+            } catch (e) { console.error(`Error DL image: ${e}`); }
         }
         break;
     }
