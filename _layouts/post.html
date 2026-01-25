@@ -13,3 +13,26 @@ layout: default
     {{ content }}
   </div>
 </article>
+---
+layout: default
+---
+
+<section class="section" style="padding-top: 150px; min-height: 100vh;">
+  <div style="max-width: 800px; margin: 0 auto;">
+    
+    {% if page.image %}
+      <img src="{{ page.image }}" alt="{{ page.title }}" style="width: 100%; border-radius: 16px; margin-bottom: 2rem; object-fit: cover;">
+    {% endif %}
+
+    <h1 style="font-size: 3rem; margin-bottom: 1rem; line-height: 1.2;">{{ page.title }}</h1>
+    
+    {% if page.description %}
+      <p style="font-size: 1.2rem; color: var(--muted); margin-bottom: 3rem; font-style: italic;">{{ page.description }}</p>
+    {% endif %}
+
+    <div class="post-content" style="line-height: 1.8; font-size: 1.1rem;">
+      {{ content }}
+    </div>
+
+  </div>
+</section>
