@@ -3,13 +3,14 @@ description: Curated Tech Center By Bobby-Digital
 url: "https://www.qilombo.tech"
 baseurl: ""
 
-# This tells Jekyll to look for your Notion articles in the 'content' folder
+# 1. FIX: Ensure future posts are built
+future: true
+
 collections:
   content:
     output: true
     permalink: /:slug/
 
-# Exclude node_modules so the build doesn't crash
 exclude:
   - node_modules
   - package.json
