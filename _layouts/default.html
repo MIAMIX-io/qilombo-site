@@ -1,1 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>{% if page.title %}{{ page.title }} | QILOMBO.TECH{% else %}QILOMBO.TECH — Digital Infrastructure & Services{% endif %}</title>
 
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="/images/QIlombo_Logo_Primary.png" type="image/png" />
+
+  <meta name="description" content="{% if page.description %}{{ page.description }}{% else %}Qilombo Tech is the digital backbone of the Qilombo ecosystem.{% endif %}" />
+</head>
+
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/">
+        <img src="/images/QIlombo_Logo_Primary.png" alt="Qilombo Logo" class="logo" />
+      </a>
+      <div class="nav-links">
+        <a href="/#services">Services</a>
+        <a href="/#ecosystem">Ecosystem</a>
+        <a href="/#contact" class="btn-outline">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    {{ content }}
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 QILOMBO. All rights reserved.</p>
+  </footer>
+
+  <script src="/js/script.js"></script> 
+
+</body>
+</html>
