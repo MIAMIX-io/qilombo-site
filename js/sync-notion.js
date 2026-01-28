@@ -100,13 +100,11 @@ async function fetchChildrenRecursively(blockId) {
         });
         
         for (const block of results) {
-            // Recursion: If block has children (like toggles/columns), fetch them
             if (block.has_children) {
                 block.children = await fetchChildrenRecursively(block.id);
             }
             children.push(block);
         }
-        
         if (!has_more) break;
         cursor = next_cursor;
     }
