@@ -13,7 +13,6 @@ const OUTPUT_DIR = '_content';
 async function syncPages() {
   console.log(`🔄 Starting Sync for: ${TARGET_WEBSITE}...`);
 
-  // Ensure output directory exists to prevent errors
   if (!fs.existsSync(OUTPUT_DIR)) {
       fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
@@ -30,7 +29,7 @@ async function syncPages() {
   });
 
   if (response.results.length === 0) {
-      console.log("ℹ️ No 'Published' pages found. (Check if pages are already 'Live' or filters match).");
+      console.log("ℹ️ No 'Published' pages found.");
   }
 
   for (const page of response.results) {
@@ -40,13 +39,13 @@ async function syncPages() {
     
     console.log(`Processing: ${title}...`);
 
-    // Create folder for post images
+    // Setup Image Directory
     const imageDir = path.join('images', 'posts', slug);
     if (!fs.existsSync(imageDir)) {
         fs.mkdirSync(imageDir, { recursive: true });
     }
 
-    // --- HANDLE COVER IMAGE ---
+    // --- 1. DOWNLOAD COVER IMAGE ---
     let coverImage = '';
     if (props['Cover Image'] && props['Cover Image'].files.length > 0) {
         const fileObj = props['Cover Image'].files[0];
@@ -58,33 +57,29 @@ async function syncPages() {
                 await downloadImage(imageUrl, path.join(imageDir, filename));
                 coverImage = `/images/posts/${slug}/${filename}`;
             } catch (err) {
-                console.error(`⚠️ Failed to download cover image: ${err.message}`);
+                console.error(`⚠️ Failed to download cover: ${err.message}`);
             }
         }
     }
 
-    // --- FETCH BLOCKS & CONTENT ---
-    const blocks = await notion.blocks.children.list({
-      block_id: page.id,
-      page_size: 100
-    });
+    // --- 2. FETCH BLOCKS RECURSIVELY (Fixes Missing Dropdowns) ---
+    const blocks = await fetchChildrenRecursively(page.id);
     
-    const markdown = await convertBlocksToMarkdown(blocks.results, slug, imageDir);
+    // --- 3. CONVERT TO MARKDOWN ---
+    const markdown = await convertBlocksToMarkdown(blocks, slug, imageDir);
     const frontmatter = generateFrontmatter(props, coverImage);
     
-    // Write to '_content' folder
+    // --- 4. SAVE FILE ---
     const filepath = path.join(OUTPUT_DIR, `${slug}.md`);
     fs.writeFileSync(filepath, `${frontmatter}\n\n${markdown}`);
     
     console.log(`✓ Synced file: "${slug}.md"`);
 
-    // --- UPDATE NOTION STATUS TO 'Live' ---
+    // --- 5. UPDATE STATUS TO LIVE ---
     try {
         await notion.pages.update({
             page_id: page.id,
-            properties: {
-                'Status': { status: { name: 'Live' } } 
-            }
+            properties: { 'Status': { status: { name: 'Live' } } }
         });
         console.log(`✨ Updated Notion Status to "Live"`);
     } catch (error) {
@@ -93,70 +88,80 @@ async function syncPages() {
   }
 }
 
-// --- HELPER FUNCTIONS ---
-
-function downloadImage(url, filepath) {
-    return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(filepath);
-        https.get(url, (response) => {
-            if (response.statusCode !== 200) {
-                reject(new Error(`Status code ${response.statusCode}`));
-                return;
+// --- CORE RECURSIVE FUNCTION ---
+async function fetchChildrenRecursively(blockId) {
+    let children = [];
+    let cursor = undefined;
+    
+    while (true) {
+        const { results, next_cursor, has_more } = await notion.blocks.children.list({
+            block_id: blockId,
+            start_cursor: cursor,
+        });
+        
+        for (const block of results) {
+            // Recursion: If block has children (like toggles/columns), fetch them
+            if (block.has_children) {
+                block.children = await fetchChildrenRecursively(block.id);
             }
-            response.pipe(file);
-            file.on('finish', () => { file.close(); resolve(); });
-        }).on('error', (err) => { fs.unlink(filepath, () => {}); reject(err.message); });
-    });
+            children.push(block);
+        }
+        
+        if (!has_more) break;
+        cursor = next_cursor;
+    }
+    return children;
 }
 
-function getExtension(url) {
-    const cleanUrl = url.split('?')[0];
-    const ext = path.extname(cleanUrl);
-    return ext || '.jpg';
-}
-
-function generateFrontmatter(props, coverImage) {
-  // CRITICAL FIX: Handle both "Person" and "Text" types for Author
-  let authorName = 'Qilombo';
-  if (props['Author']) {
-      if (props['Author'].type === 'people' && props['Author'].people.length > 0) {
-          authorName = props['Author'].people[0].name;
-      } else if (props['Author'].type === 'rich_text' && props['Author'].rich_text.length > 0) {
-          authorName = props['Author'].rich_text[0].plain_text;
-      }
-  }
-
-  const meta = {
-    layout: 'post',
-    title: props['Page Title']?.title[0]?.plain_text,
-    description: props['Meta Description']?.rich_text[0]?.plain_text,
-    date: props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0],
-    tags: props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [],
-    image: coverImage,
-    author: authorName,
-    excerpt: props['Excerpt']?.rich_text[0]?.plain_text
-  };
-  
-  return '---\n' + Object.entries(meta)
-    .filter(([k, v]) => v)
-    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-    .join('\n') + '\n---';
-}
-
-function slugify(text) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-
+// --- CONVERTER (Added Callouts & Details) ---
 async function convertBlocksToMarkdown(blocks, slug, imageDir) {
   const output = [];
+  
   for (const block of blocks) {
     switch(block.type) {
-      case 'paragraph': output.push(block.paragraph.rich_text.map(t => t.plain_text).join('')); break;
-      case 'heading_1': output.push('# ' + block.heading_1.rich_text.map(t => t.plain_text).join('')); break;
-      case 'heading_2': output.push('## ' + block.heading_2.rich_text.map(t => t.plain_text).join('')); break;
-      case 'heading_3': output.push('### ' + block.heading_3.rich_text.map(t => t.plain_text).join('')); break;
-      case 'bulleted_list_item': output.push('- ' + block.bulleted_list_item.rich_text.map(t => t.plain_text).join('')); break;
-      case 'numbered_list_item': output.push('1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join('')); break;
+      case 'paragraph':
+        output.push(block.paragraph.rich_text.map(t => t.plain_text).join(''));
+        break;
+      case 'heading_1':
+        output.push('# ' + block.heading_1.rich_text.map(t => t.plain_text).join(''));
+        break;
+      case 'heading_2':
+        output.push('## ' + block.heading_2.rich_text.map(t => t.plain_text).join(''));
+        break;
+      case 'heading_3':
+        output.push('### ' + block.heading_3.rich_text.map(t => t.plain_text).join(''));
+        break;
+      case 'bulleted_list_item':
+        output.push('- ' + block.bulleted_list_item.rich_text.map(t => t.plain_text).join(''));
+        break;
+      case 'numbered_list_item':
+        output.push('1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join(''));
+        break;
+        
+      // NEW: Callouts (Styled as Quotes)
+      case 'callout':
+        const icon = block.callout.icon?.emoji || '💡';
+        const text = block.callout.rich_text.map(t => t.plain_text).join('');
+        output.push(`> ${icon} **${text}**`);
+        break;
+
+      // NEW: Quote
+      case 'quote':
+        output.push(`> ${block.quote.rich_text.map(t => t.plain_text).join('')}`);
+        break;
+
+      // NEW: Divider
+      case 'divider':
+        output.push(`---`);
+        break;
+
+      // NEW: Toggle / Dropdown
+      case 'toggle':
+        const summary = block.toggle.rich_text.map(t => t.plain_text).join('') || 'Click to reveal';
+        const innerContent = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
+        output.push(`<details><summary>${summary}</summary>\n\n${innerContent}\n\n</details>`);
+        break;
+
       case 'image':
         const imgUrl = block.image.file?.url || block.image.external?.url;
         const caption = block.image.caption?.length ? block.image.caption[0].plain_text : "Image";
@@ -171,6 +176,47 @@ async function convertBlocksToMarkdown(blocks, slug, imageDir) {
     }
   }
   return output.join('\n\n');
+}
+
+// --- HELPERS ---
+function downloadImage(url, filepath) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(filepath);
+        https.get(url, (response) => {
+            if (response.statusCode !== 200) { reject(new Error(response.statusCode)); return; }
+            response.pipe(file);
+            file.on('finish', () => { file.close(); resolve(); });
+        }).on('error', (err) => { fs.unlink(filepath, () => {}); reject(err.message); });
+    });
+}
+
+function getExtension(url) {
+    return path.extname(url.split('?')[0]) || '.jpg';
+}
+
+function generateFrontmatter(props, coverImage) {
+  let authorName = 'Qilombo';
+  if (props['Author']) {
+      if (props['Author'].type === 'people' && props['Author'].people.length > 0) authorName = props['Author'].people[0].name;
+      else if (props['Author'].type === 'rich_text' && props['Author'].rich_text.length > 0) authorName = props['Author'].rich_text[0].plain_text;
+  }
+
+  const meta = {
+    layout: 'post',
+    title: props['Page Title']?.title[0]?.plain_text,
+    description: props['Meta Description']?.rich_text[0]?.plain_text,
+    date: props['Publish Date']?.date?.start || new Date().toISOString().split('T')[0],
+    tags: props['Tags']?.multi_select ? props['Tags'].multi_select.map(t => t.name) : [],
+    image: coverImage,
+    author: authorName,
+    excerpt: props['Excerpt']?.rich_text[0]?.plain_text
+  };
+  
+  return '---\n' + Object.entries(meta).filter(([k, v]) => v).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join('\n') + '\n---';
+}
+
+function slugify(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 syncPages().catch(console.error);
