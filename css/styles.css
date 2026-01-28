@@ -214,3 +214,60 @@ body {
   font-size: 0.8rem;
   color: var(--muted);
 }
+/* --- BLOG POST STYLES --- */
+
+/* Add spacing between paragraphs */
+.post-content p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #ddd;
+}
+
+/* Style the Headings */
+.post-content h1, 
+.post-content h2, 
+.post-content h3 {
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.post-content h2 {
+  font-size: 2rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.post-content h3 {
+  font-size: 1.5rem;
+  color: var(--cyan);
+}
+
+/* Style Callout Blocks (Notion Callouts turn into blockquotes) */
+.post-content blockquote {
+  background: #111;
+  border-left: 4px solid var(--cyan);
+  padding: 1.5rem;
+  margin: 2rem 0;
+  border-radius: 8px;
+  font-style: normal;
+  color: var(--muted);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Style Dropdowns (Toggles) */
+.post-content details {
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-content summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--cyan);
+}
