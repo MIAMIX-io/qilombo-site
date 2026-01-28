@@ -271,3 +271,23 @@ body {
   font-weight: bold;
   color: var(--cyan);
 }
+/* --- NOTION COLUMNS --- */
+.notion-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.notion-col {
+  flex: 1;
+  min-width: 300px; /* Stacks vertically on mobile */
+}
+
+/* Ensure images inside columns don't overflow */
+.notion-col img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
