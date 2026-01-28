@@ -26,5 +26,57 @@ We understand the unique challenges and nuances of the beverage industry. This s
 
 
 
+> 💡 ****
 
+
+
+> 💡 ****
+
+---
+
+<details><summary>FAQ 01</summary>
+
+
+
+Q: What is the typical project timeline?
+
+
+
+A: Our projects typically range from 4 to 12 weeks, depending on the scope and complexity of the services required. We will provide a detailed timeline once the project scope is finalized.
+
+
+
+</details>
+
+---
+
+<details><summary>FAQ 02</summary>
+
+
+
+Q: How are payments handled? 
+
+
+
+A: A deposit is required to secure your spot and begin the project. The remaining balance is typically paid in installments upon reaching key project milestones.
+
+
+
+</details>
+
+---
+
+<details><summary>FAQ 03</summary>
+
+
+
+Q: Do you offer ongoing support after the project is completed?
+
+
+
+A: Yes, we offer monthly retainers for ongoing media management, including content creation, social media scheduling, and performance analytics. This ensures your brand continues to grow.
+
+
+
+</details>
 
