@@ -62,7 +62,7 @@ async function syncPages() {
         }
     }
 
-    // --- 2. FETCH BLOCKS RECURSIVELY (Fixes Missing Dropdowns) ---
+    // --- 2. FETCH BLOCKS RECURSIVELY (Now includes Columns) ---
     const blocks = await fetchChildrenRecursively(page.id);
     
     // --- 3. CONVERT TO MARKDOWN ---
@@ -88,7 +88,7 @@ async function syncPages() {
   }
 }
 
-// --- CORE RECURSIVE FUNCTION ---
+// --- RECURSIVE FETCHER ---
 async function fetchChildrenRecursively(blockId) {
     let children = [];
     let cursor = undefined;
@@ -100,6 +100,7 @@ async function fetchChildrenRecursively(blockId) {
         });
         
         for (const block of results) {
+            // Recursion: Look inside columns, toggles, etc.
             if (block.has_children) {
                 block.children = await fetchChildrenRecursively(block.id);
             }
@@ -111,7 +112,7 @@ async function fetchChildrenRecursively(blockId) {
     return children;
 }
 
-// --- CONVERTER (Added Callouts & Details) ---
+// --- CONVERTER (Added Column Logic) ---
 async function convertBlocksToMarkdown(blocks, slug, imageDir) {
   const output = [];
   
@@ -135,29 +136,35 @@ async function convertBlocksToMarkdown(blocks, slug, imageDir) {
       case 'numbered_list_item':
         output.push('1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join(''));
         break;
-        
-      // NEW: Callouts (Styled as Quotes)
+      case 'quote':
+        output.push(`> ${block.quote.rich_text.map(t => t.plain_text).join('')}`);
+        break;
+      case 'divider':
+        output.push(`---`);
+        break;
+
+      // --- NEW: COLUMNS ---
+      case 'column_list':
+        const cols = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
+        output.push(`<div class="notion-row">\n${cols}\n</div>`);
+        break;
+
+      case 'column':
+        const colContent = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
+        output.push(`<div class="notion-col">\n${colContent}\n</div>`);
+        break;
+      // --------------------
+
       case 'callout':
         const icon = block.callout.icon?.emoji || '💡';
         const text = block.callout.rich_text.map(t => t.plain_text).join('');
         output.push(`> ${icon} **${text}**`);
         break;
 
-      // NEW: Quote
-      case 'quote':
-        output.push(`> ${block.quote.rich_text.map(t => t.plain_text).join('')}`);
-        break;
-
-      // NEW: Divider
-      case 'divider':
-        output.push(`---`);
-        break;
-
-      // NEW: Toggle / Dropdown
       case 'toggle':
         const summary = block.toggle.rich_text.map(t => t.plain_text).join('') || 'Click to reveal';
-        const innerContent = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
-        output.push(`<details><summary>${summary}</summary>\n\n${innerContent}\n\n</details>`);
+        const inner = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
+        output.push(`<details><summary>${summary}</summary>\n\n${inner}\n\n</details>`);
         break;
 
       case 'image':
