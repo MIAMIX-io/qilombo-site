@@ -25,7 +25,8 @@ We understand the unique challenges and nuances of the beverage industry. This s
 
 
 <div class="notion-row">
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 PACKAGE 01 — SIGNATURE BEVERAGE PROGRAM
 
 
@@ -78,9 +79,11 @@ TIMELINE / 4–6 weeks, depending on concept complexity and collaboration cadenc
 INVESTMENT / Starting at $7,999 USD
 
 (Final pricing may vary based on scope, menu size, training depth, and on-site requirements.)
+
 </div>
 
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 PACKAGE 02 — BEVERAGE REFINEMENT & DOCUMENTATION
 
 
@@ -128,19 +131,23 @@ INVESTMENT / $3,999 USD
 (Ideal for single-venue concepts seeking professionalization without a full program rebuild.)
 
 
+
 </div>
 </div>
 
 ---
 
 <div class="notion-row">
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 ![Image](/images/posts/hospitality-consulting/2f19f477-fdba-8054-8f24-e6c856590988.png)
+
 
 
 </div>
 
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 # Love Note — NO. 01
 
 
@@ -151,13 +158,15 @@ INVESTMENT / $3,999 USD
 
 
 – John Smith, Founder of [Client's Company]
+
 </div>
 </div>
 
 ---
 
 <div class="notion-row">
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 <details><summary>FAQ 01</summary>
 
 
@@ -173,9 +182,11 @@ A: Our projects typically range from 4 to 12 weeks, depending on the scope and c
 </details>
 
 
+
 </div>
 
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 <details><summary>FAQ 02</summary>
 
 
@@ -191,9 +202,11 @@ A: A deposit is required to secure your spot and begin the project. The remainin
 </details>
 
 
+
 </div>
 
-<div class="notion-col">
+<div class="notion-col" markdown="1">
+
 <details><summary>FAQ 03</summary>
 
 
@@ -207,6 +220,7 @@ A: Yes, we offer monthly retainers for ongoing media management, including conte
 
 
 </details>
+
 
 
 </div>
