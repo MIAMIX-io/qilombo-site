@@ -39,7 +39,6 @@ async function syncPages() {
     
     console.log(`Processing: ${title}...`);
 
-    // Setup Image Directory
     const imageDir = path.join('images', 'posts', slug);
     if (!fs.existsSync(imageDir)) {
         fs.mkdirSync(imageDir, { recursive: true });
@@ -62,7 +61,7 @@ async function syncPages() {
         }
     }
 
-    // --- 2. FETCH BLOCKS RECURSIVELY (Now includes Columns) ---
+    // --- 2. FETCH BLOCKS RECURSIVELY ---
     const blocks = await fetchChildrenRecursively(page.id);
     
     // --- 3. CONVERT TO MARKDOWN ---
@@ -100,7 +99,6 @@ async function fetchChildrenRecursively(blockId) {
         });
         
         for (const block of results) {
-            // Recursion: Look inside columns, toggles, etc.
             if (block.has_children) {
                 block.children = await fetchChildrenRecursively(block.id);
             }
@@ -112,7 +110,7 @@ async function fetchChildrenRecursively(blockId) {
     return children;
 }
 
-// --- CONVERTER (Added Column Logic) ---
+// --- CONVERTER ---
 async function convertBlocksToMarkdown(blocks, slug, imageDir) {
   const output = [];
   
@@ -143,7 +141,7 @@ async function convertBlocksToMarkdown(blocks, slug, imageDir) {
         output.push(`---`);
         break;
 
-      // --- NEW: COLUMNS ---
+      // --- FIXED: COLUMNS WITH MARKDOWN SUPPORT ---
       case 'column_list':
         const cols = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
         output.push(`<div class="notion-row">\n${cols}\n</div>`);
@@ -151,9 +149,11 @@ async function convertBlocksToMarkdown(blocks, slug, imageDir) {
 
       case 'column':
         const colContent = block.children ? await convertBlocksToMarkdown(block.children, slug, imageDir) : '';
-        output.push(`<div class="notion-col">\n${colContent}\n</div>`);
+        // 1. Added 'markdown="1"' to force rendering
+        // 2. Added extra newlines '\n\n' which are critical for parsing
+        output.push(`<div class="notion-col" markdown="1">\n\n${colContent}\n\n</div>`);
         break;
-      // --------------------
+      // ---------------------------------------------
 
       case 'callout':
         const icon = block.callout.icon?.emoji || '💡';
