@@ -4,6 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Countdown to Miami</title>
+
+  <!-- Favicon Links -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://qilombo.tech/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="https://qilombo.tech/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="https://qilombo.tech/apple-touch-icon.png" />
+
+  <!-- Open Graph / WhatsApp & iMessage Preview Tags -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://qilombo.tech/countdown" />
+  <meta property="og:title" content="COUNTDOWN TO MIAMI" />
+  <meta property="og:description" content="Get ready! The Miami countdown is officially ticking." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?auto=format&fit=crop&w=1200&q=80" />
+
+  <!-- Twitter Card Preview -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://qilombo.tech/countdown" />
+  <meta name="twitter:title" content="COUNTDOWN TO MIAMI" />
+  <meta name="twitter:description" content="Get ready! The Miami countdown is officially ticking." />
+  <meta name="twitter:image" content="https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?auto=format&fit=crop&w=1200&q=80" />
+
   <style>
     * {
       box-sizing: border-box;
@@ -18,22 +38,23 @@
       justify-content: center;
       align-items: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      /* Dark Miami theme gradient with subtle palm tree aesthetic */
-      background: radial-gradient(circle at center, #1a0b2e 0%, #090314 100%);
+      /* Miami Unsplash wallpaper with dark overlay for readability */
+      background: linear-gradient(rgba(15, 7, 29, 0.75), rgba(15, 7, 29, 0.85)),
+                  url('https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
       color: #ffffff;
       padding: 20px;
       overflow-x: hidden;
     }
 
-    /* Decorative Synthwave Sun Glow */
+    /* Ambient Synthwave Glow Behind Main Container */
     .sun-glow {
       position: absolute;
-      width: 300px;
-      height: 300px;
-      background: linear-gradient(to top, #ff007f, #ffaa00);
+      width: 320px;
+      height: 320px;
+      background: linear-gradient(to top, #ff007f, #00f6ff);
       border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.25;
+      filter: blur(100px);
+      opacity: 0.3;
       z-index: 0;
     }
 
@@ -50,15 +71,14 @@
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 4px;
-      /* Miami neon gradient text */
       background: linear-gradient(45deg, #00f6ff, #ff007f);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 30px rgba(255, 0, 127, 0.3);
+      text-shadow: 0 0 30px rgba(255, 0, 127, 0.4);
       margin-bottom: 2rem;
     }
 
-    /* Countdown Grid: Converts from row (desktop) to grid/column (mobile) */
+    /* Responsive Grid: 4 boxes wide on desktop, 2x2 on mobile */
     .timer {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -67,12 +87,13 @@
     }
 
     .time-box {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(0, 246, 255, 0.2);
-      backdrop-filter: blur(10px);
-      padding: 20px 10px;
+      background: rgba(10, 5, 20, 0.55);
+      border: 1px solid rgba(0, 246, 255, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 25px 10px;
       border-radius: 16px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
       transition: transform 0.3s ease, border-color 0.3s ease;
     }
 
@@ -85,7 +106,7 @@
       font-size: clamp(2rem, 5vw, 4rem);
       font-weight: 800;
       color: #00f6ff;
-      text-shadow: 0 0 12px rgba(0, 246, 255, 0.6);
+      text-shadow: 0 0 12px rgba(0, 246, 255, 0.8);
     }
 
     .label {
@@ -94,17 +115,17 @@
       letter-spacing: 2px;
       color: #ff007f;
       margin-top: 5px;
+      font-weight: 600;
     }
 
-    /* Vertical Mobile Adjustments */
     @media (max-width: 600px) {
       .timer {
-        grid-template-columns: repeat(2, 1fr); /* 2x2 grid for mobile portrait */
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
       }
       
       .time-box {
-        padding: 15px 5px;
+        padding: 18px 5px;
       }
     }
   </style>
@@ -137,7 +158,7 @@
   </div>
 
   <script>
-    // Set your target date here
+    // Set your target event date here
     const targetDate = new Date("December 31, 2026 00:00:00").getTime();
 
     function updateCountdown() {
@@ -154,6 +175,8 @@
         document.getElementById("hours").innerText = String(hours).padStart(2, '0');
         document.getElementById("minutes").innerText = String(minutes).padStart(2, '0');
         document.getElementById("seconds").innerText = String(seconds).padStart(2, '0');
+      } else {
+        document.querySelector(".container").innerHTML = "<h1>Welcome to Miami!</h1>";
       }
     }
 
