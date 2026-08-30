@@ -1,71 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wednesday Countdown</title>
-    <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            background: linear-gradient(135deg, #1e1e2f, #252542); 
-            color: #fff; 
-            margin: 0; 
-        }
-        .timer-container {
-            text-align: center;
-        }
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-            color: #a5a5d9;
-        }
-        .timer { 
-            font-size: 3.5rem; 
-            font-weight: bold; 
-            background: rgba(255, 255, 255, 0.05); 
-            padding: 25px 45px; 
-            border-radius: 15px; 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Countdown to Miami</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      /* Dark Miami theme gradient with subtle palm tree aesthetic */
+      background: radial-gradient(circle at center, #1a0b2e 0%, #090314 100%);
+      color: #ffffff;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Decorative Synthwave Sun Glow */
+    .sun-glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(to top, #ff007f, #ffaa00);
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      /* Miami neon gradient text */
+      background: linear-gradient(45deg, #00f6ff, #ff007f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(255, 0, 127, 0.3);
+      margin-bottom: 2rem;
+    }
+
+    /* Countdown Grid: Converts from row (desktop) to grid/column (mobile) */
+    .timer {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      width: 100%;
+    }
+
+    .time-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 246, 255, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 20px 10px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .time-box:hover {
+      transform: translateY(-5px);
+      border-color: #ff007f;
+    }
+
+    .number {
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 800;
+      color: #00f6ff;
+      text-shadow: 0 0 12px rgba(0, 246, 255, 0.6);
+    }
+
+    .label {
+      font-size: clamp(0.75rem, 1.5vw, 1rem);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #ff007f;
+      margin-top: 5px;
+    }
+
+    /* Vertical Mobile Adjustments */
+    @media (max-width: 600px) {
+      .timer {
+        grid-template-columns: repeat(2, 1fr); /* 2x2 grid for mobile portrait */
+        gap: 12px;
+      }
+      
+      .time-box {
+        padding: 15px 5px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <div class="timer-container">
-        <h1>COUNTDOWN TO WEDNESDAY 6:30 PM</h1>
-        <div class="timer" id="clock">Loading...</div>
+  <div class="sun-glow"></div>
+
+  <div class="container">
+    <h1>Countdown to Miami</h1>
+    
+    <div class="timer">
+      <div class="time-box">
+        <div class="number" id="days">00</div>
+        <div class="label">Days</div>
+      </div>
+      <div class="time-box">
+        <div class="number" id="hours">00</div>
+        <div class="label">Hours</div>
+      </div>
+      <div class="time-box">
+        <div class="number" id="minutes">00</div>
+        <div class="label">Minutes</div>
+      </div>
+      <div class="time-box">
+        <div class="number" id="seconds">00</div>
+        <div class="label">Seconds</div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // Target: Sept 2, 2026 at 18:30:00 (JavaScript months are 0-indexed: 8 = September)
-        const targetDate = new Date(2026, 8, 2, 18, 30, 0).getTime();
+  <script>
+    // Set your target date here
+    const targetDate = new Date("December 31, 2026 00:00:00").getTime();
 
-        const updateTimer = setInterval(() => {
-            const now = new Date().getTime();
-            const distance = targetDate - now;
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
 
-            if (distance < 0) {
-                clearInterval(updateTimer);
-                document.getElementById("clock").innerHTML = "EVENT STARTED";
-                return;
-            }
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        document.getElementById("days").innerText = String(days).padStart(2, '0');
+        document.getElementById("hours").innerText = String(hours).padStart(2, '0');
+        document.getElementById("minutes").innerText = String(minutes).padStart(2, '0');
+        document.getElementById("seconds").innerText = String(seconds).padStart(2, '0');
+      }
+    }
 
-            document.getElementById("clock").innerHTML = 
-                days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
-        }, 1000);
-    </script>
-
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+  </script>
 </body>
 </html>
